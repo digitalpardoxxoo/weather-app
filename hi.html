@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather API App</title>
+    <style>
+        :root {
+            --bg-color-light: #f0f4f8;
+            --bg-color-dark: #2c3e50;
+            --card-bg-light: rgba(255, 255, 255, 0.9);
+            --card-bg-dark: rgba(44, 62, 80, 0.9);
+            --text-color-light: #333;
+            --text-color-dark: #ecf0f1;
+        }
+        body {
+            font-family: 'Arial', sans-serif;
+            background: var(--bg-color-light);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            transition: background 0.3s;
+            color: var(--text-color-light);
+        }
+        .container {
+            background-color: var(--card-bg-light);
+            padding: 2rem;
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 400px;
+            text-align: center;
+            transition: background-color 0.3s, color 0.3s;
+        }
+        h1 {
+            color: inherit;
+            font-size: 1.8rem;
+            margin-bottom: 1.5rem;
+        }
+        input, button {
+            width: 100%;
+            padding: 0.75rem;
+            margin-bottom: 1rem;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            box-sizing: border-box;
+        }
+        input {
+            border: 2px solid #e0e0e0;
+            transition: border-color 0.3s;
+        }
+        input:focus {
+            outline: none;
+            border-color: #6B8CEF;
+        }
+        button {
+            background-color: #6B8CEF;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: 600;
+        }
+        button:hover {
+            background-color: #5A7BE0;
+        }
+        #dark-mode-toggle {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            cursor: pointer;
+            font-size: 1.2rem;
+            background: transparent;
+            color: inherit;
+            border: none;
+        }
+        .weather-card, .suggestions {
+            background-color: var(--card-bg-light);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-top: 1rem;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s;
+        }
+        .temperature {
+            font-size: 3rem;
+            font-weight: bold;
+            color: inherit;
+        }
+        .condition {
+            text-transform: capitalize;
+            font-size: 1.2rem;
+            color: #666;
+        }
+        .details {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            text-align: left;
+        }
+        .detail-item, .suggestions p {
+            color: inherit;
+            font-size: 0.9rem;
+            text-align: center;
+        }
+        .error, .loading {
+            font-style: italic;
+            color: #e74c3c;
+        }
+    </style>
+</head>
+<body>
+    <button id="dark-mode-toggle" onclick="toggleDarkMode()">🌙</button>
+    <div class="container">
+        <h1>Weather Forecast</h1>
+        <div class="api-key-container">
+            <input type="text" id="api-key-input" placeholder="Enter your WeatherAPI.com API key">
+            <button id="save-api-key" onclick="saveApiKey()">Save API Key</button>
+        </div>
+        <input type="text" id="location-input" placeholder="Enter city name">
+        <button onclick="fetchWeather()">Get Weather</button>
+        <div id="weather-display"></div>
+    </div>
+
+    <script>
+        const apiKeyInput = document.getElementById('api-key-input');
+        const locationInput = document.getElementById('location-input');
+        const weatherDisplay = document.getElementById('weather-display');
+        const darkModeToggle = document.getElementById('dark-mode-toggle');
+        let isDarkMode = false;
+
+        function saveApiKey() {
+            const apiKey = apiKeyInput.value.trim();
+            if (apiKey) {
+                localStorage.setItem('weatherApiKey', apiKey);
+                alert('API Key saved!');
+                apiKeyInput.value = '';
+            } else {
+                alert('Please enter a valid API key.');
+            }
+        }
+
+        function getApiKey() {
+            return localStorage.getItem('weatherApiKey');
+        }
+
+        async function fetchWeather() {
+            const location = locationInput.value.trim();
+            const apiKey = getApiKey();
+            if (!apiKey) {
+                weatherDisplay.innerHTML = '<div class="error">Please save a valid API key.</div>';
+                return;
+            }
+            if (!location) {
+                weatherDisplay.innerHTML = '<div class="error">Please enter a location.</div>';
+                return;
+            }
+
+            weatherDisplay.innerHTML = '<div class="loading">Loading...</div>';
+
+            try {
+                const response = await fetch(`https://api.weatherapi.com/v1/current.json?key=${apiKey}&q=${location}`);
+                const data = await response.json();
+
+                if (data.error) {
+                    weatherDisplay.innerHTML = `<div class="error">${data.error.message}</div>`;
+                } else {
+                    displayWeather(data);
+                }
+            } catch (error) {
+                weatherDisplay.innerHTML = `<div class="error">Error fetching data. Please try again.</div>`;
+            }
+        }
+
+        function displayWeather(data) {
+            weatherDisplay.innerHTML = `
+                <div class="weather-card">
+                    <div class="temperature">${data.current.temp_c}°C</div>
+                    <div class="condition">${data.current.condition.text}</div>
+                    <div class="details">
+                        <div class="detail-item"><strong>Humidity:</strong> ${data.current.humidity}%</div>
+                        <div class="detail-item"><strong>Wind:</strong> ${data.current.wind_kph} kph</div>
+                        <div class="detail-item"><strong>Feels Like:</strong> ${data.current.feelslike_c}°C</div>
+                        <div class="detail-item"><strong>Pressure:</strong> ${data.current.pressure_mb} mb</div>
+                    </div>
+                </div>
+                <div class="suggestions">${suggestActivity(data.current.condition.text)}</div>
+            `;
+        }
+
+        function suggestActivity(condition) {
+            let suggestion;
+            if (condition.includes("rain")) {
+                suggestion = "It's rainy! A perfect day for a cozy indoor activity like reading a book or watching a movie.";
+            } else if (condition.includes("sun")) {
+                suggestion = "It's sunny! How about a walk in the park or some outdoor sports?";
+            } else if (condition.includes("snow")) {
+                suggestion = "Snowy weather! You could go skiing, snowboarding, or just enjoy a hot chocolate at home.";
+            } else {
+                suggestion = "Weather looks good! Perfect time to enjoy your favorite activity or explore something new.";
+            }
+            return `<p><strong>Suggested Activity:</strong> ${suggestion}</p>`;
+        }
+
+        function toggleDarkMode() {
+            isDarkMode = !isDarkMode;
+            document.body.style.background = isDarkMode ? 'var(--bg-color-dark)' : 'var(--bg-color-light)';
+            document.body.style.color = isDarkMode ? 'var(--text-color-dark)' : 'var(--text-color-light)';
+            document.querySelectorAll('.container, .weather-card, .suggestions').forEach(el => {
+                el.style.backgroundColor = isDarkMode ? 'var(--card-bg-dark)' : 'var(--card-bg-light)';
+            });
+            darkModeToggle.textContent = isDarkMode ? "☀️" : "🌙";
+        }
+    </script>
+</body>
+</html>
